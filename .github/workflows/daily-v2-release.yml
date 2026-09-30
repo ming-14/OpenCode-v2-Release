@@ -34,8 +34,8 @@ env:
   # prod → 桌面版 productName 为 "OpenCode"、appId 为 ai.opencode.desktop
   # 可改为 beta（"OpenCode Beta"）以避开与官方安装版的标识冲突
   OPENCODE_CHANNEL: prod
-  # 每日镜像标记为预发布；改成 "false" 可让 GitHub 把最新一次构建显示为 Latest
-  PRERELEASE: "true"
+  # "false" = 正式版（Latest），"true" = 预发布
+  PRERELEASE: "false"
 
 jobs:
   # ─────────────────────────────────────────────────────────────
