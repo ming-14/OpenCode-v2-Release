@@ -1,12 +1,12 @@
 {
   "upstream": "anomalyco/opencode",
   "branch": "v2",
-  "desktop_version": "2.0.22",
-  "cli_version": "2.0.22",
-  "commit": "527f0b931d1f9b3ebd34e106c51b31ce5db5b075",
-  "version": "2.0.22",
-  "upstream_tag": "v2.0.22",
-  "release_tag": "v2.0.22",
-  "release_url": "https://github.com/ming-14/OpenCode-v2-Release/releases/tag/v2.0.22",
-  "updated_at": "2026-10-03T03:35:09Z"
+  "desktop_version": "2.0.24",
+  "cli_version": "2.0.24",
+  "commit": "e7a34f09bfd9134dfade5a8ddb843f7030bc9a69",
+  "version": "2.0.24",
+  "upstream_tag": "v2.0.24",
+  "release_tag": "v2.0.24",
+  "release_url": "https://github.com/ming-14/OpenCode-v2-Release/releases/tag/v2.0.24",
+  "updated_at": "2026-10-06T04:35:33Z"
 }
