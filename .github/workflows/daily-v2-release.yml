@@ -28,9 +28,9 @@ concurrency:
 env:
   UPSTREAM_REPO: anomalyco/opencode
   UPSTREAM_BRANCH: v2
-  # 与上游 .github/workflows/publish.yml 保持一致：编译进产物的 Bun 运行时版本
-  BUN_VERSION: "1.4.2"
-  BUN_COMPILE_RELEASE: bun-v1.4.2
+  # Bun 版本不在这里硬编码：packages/script 的 build 脚本按上游 root package.json 的
+  # packageManager（bun@x.y.z）校验运行时版本，交叉编译下载的 Bun release 也用同一字段，
+  # 统一在 check 任务里从上游解析后下发（曾因固定 1.4.2 而要求 ^1.4.4 导致构建失败）。
   # prod → 桌面版 productName 为 "OpenCode"、appId 为 ai.opencode.desktop
   # 可改为 beta（"OpenCode Beta"）以避开与官方安装版的标识冲突
   OPENCODE_CHANNEL: prod
@@ -47,6 +47,7 @@ jobs:
     outputs:
       changed: ${{ steps.probe.outputs.changed }}
       version: ${{ steps.probe.outputs.version }}
+      bun: ${{ steps.probe.outputs.bun }}
       tag: ${{ steps.probe.outputs.tag }}
       stamp: ${{ steps.probe.outputs.stamp }}
       short_sha: ${{ steps.probe.outputs.short_sha }}
@@ -91,6 +92,16 @@ jobs:
             exit 1
           fi
           VERSION="${RELEASE_TAG#v}"
+
+          # 上游 root package.json 的 packageManager 既是 build 脚本的 Bun 版本门槛，
+          # 也是交叉编译要下载的 Bun release 标签（bun-vx.y.z），两边同源取一次即可
+          BUN="$(gh api -H "Accept: application/vnd.github.raw+json" \
+            "repos/$UPSTREAM_REPO/contents/package.json?ref=$RELEASE_TAG" \
+            --jq '.packageManager // ""' | sed -n 's/^bun@//p')"
+          if [ -z "$BUN" ]; then
+            echo "::error::上游 root package.json 未声明 packageManager: bun@x.y.z"
+            exit 1
+          fi
 
           # tag 指向的提交不在 v2 分支线上（detached 提交），必须按 tag 解析 SHA
           TAG_COMMIT="$(gh api "repos/$UPSTREAM_REPO/commits/$RELEASE_TAG")"
@@ -150,6 +161,7 @@ jobs:
             echo "changed=$CHANGED"
             echo "version=$VERSION"
             echo "tag=$TAG"
+            echo "bun=$BUN"
             echo "upstream_tag=$RELEASE_TAG"
             echo "stamp=$STAMP"
             echo "short_sha=$SHORT"
@@ -170,6 +182,7 @@ jobs:
             echo "| 已构建 tag | \`${LAST_TAG:-—}\` |"
             echo "| 已构建提交 | \`${LAST_SHORT:-—}\` |"
             echo "| 上游 package.json | desktop \`$DESKTOP\` / cli \`$CLI\` |"
+            echo "| 上游 Bun 运行时 | \`$BUN\` |"
             echo ""
             if [ "$CHANGED" = "true" ]; then
               echo "**$REASON → 构建并发布 \`$TAG\`**（版本串 \`$VERSION\`）"
@@ -200,12 +213,12 @@ jobs:
       - name: Setup Bun + install
         uses: ./.github/actions/setup-bun
         with:
-          bun-version: ${{ env.BUN_VERSION }}
+          bun-version: ${{ needs.check.outputs.bun }}
 
       - name: Build CLI
         run: bun ./packages/cli/script/build.ts
         env:
-          BUN_COMPILE_RELEASE: ${{ env.BUN_COMPILE_RELEASE }}
+          BUN_COMPILE_RELEASE: bun-v${{ needs.check.outputs.bun }}
           OPENCODE_VERSION: ${{ needs.check.outputs.version }}
           OPENCODE_CHANNEL: ${{ env.OPENCODE_CHANNEL }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
